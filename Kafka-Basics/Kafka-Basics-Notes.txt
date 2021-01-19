@@ -1,0 +1,273 @@
+Kafka-Basics-Notes - TO start fresh remember to delete tmp directory in a project!
+-------------------------------------------------------------------
+1) Apache Kafka is a publish-subscribe messaging system which lets you send messages between processes, applications, and servers. 
+2) Apache Kafka is a horizontally scalable, fault-tolerant and distributed streaming platform.
+3) Kafka is a JVM based application, that is why Java should be installed on your machine.
+
+Three main uses of Kafka --
+
+1) Data Integration Pattern - Kafka Broker with Kafka Client APIS(producer/consumer) and Kafka Connect (COTS)
+2) Microservice Architecture for Real-Time Stream Processing - Kafka Broker with Kafka Streams
+3) Real-Time Data Warehousing - Kafka Broker with Kafka SQL (KSQL)
+
+Once data is in Kafka Cluster, it can be consumed/processed wither by Kafka Consumer API, Kafka Streams API or KSQL
+
+-------
+
+Kafka Distributions --
+
+1) Open Source - Apache Kafka - Free but No support
+2) Commercial Distribution - Confluent.io - Paid service, Support provided by Confluent, AVRO support in Confluent but not in Apache distribution
+3) Managed Service - Amazon, Confluent Cloud, aiven.io
+
+-------
+
+Installing and starting a Single Node Kafka Cluster (Confluent) --
+
+1) Download free Kafka community version from Confluent.io
+2) Set Environment variable KAFKA_HOME (Main directory path) and add to PATH (C:\confluent-6.0.1\bin\windows)
+
+CLI commands
+
+3) Start ZooKeeper Server - 
+zookeeper-server-start.bat %KAFKA_HOME%\etc\kafka\zookeeper.properties
+
+Read zookeeper configuration from zookeeper.properties
+
+By default, a Zookeeper server will be started on localhost:2181 
+
+C:\Users\Shirish>zookeeper-server-start.bat %KAFKA_HOME%\etc\kafka\zookeeper.properties
+Classpath is empty. Please build the project first e.g. by running 'gradlew jarAll'
+
+If you get above error, Fix it by adding below lines in kafka-run-class.bat for Windows 10, above line "rem Classpath addition for core"
+
+rem classpath addition for LSB style path
+if exist %BASE_DIR%\share\java\kafka\* (
+	call :concat %BASE_DIR%\share\java\kafka\*
+)
+
+4) Start a Kafka Server/Broker - 
+kafka-server-start.bat %KAFKA_HOME%\etc\kafka\server.properties
+
+Read kafka-server configuration from server.properties
+
+By default, a Kafka server will be started on localhost:9092 
+
+Now a single node  Kafka Cluster is up and running alonmg with a zookeeper.
+Steps are similar for Open Source Apache Kafka distribution.
+
+Kafka Cluster is formed with one or more Kafka Server/Broker.
+-------
+
+Using Command-Line Producer and Consumer (Kafka-console Producer and Consumer) --
+
+1) Create a Topic using kafka-topics
+
+kafka-topics.bat --create --topic test-topic --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
+
+Above command means create a topic 'test-topic' with 1 partition and 1 replication-factor on Kafka server localhost:9092
+
+2) Send a data file to kafka server/broker using Kafka-console Producer
+
+kafka-console-producer.bat --topic test-topic --broker-list localhost:9092 < C:\git-repos\Kafka-Notes-And-Examples\Sample-Data-Files\sample1.csv
+
+Basically above command is telling kafka-console-producer to read from file 'sample1.csv' and send data to topic 'test-topic' on Kafka server localhost:9092
+
+3) Read a data file from kafka server/broker using Kafka-console Consumer
+
+kafka-console-consumer.bat --topic test-topic --bootstrap-server localhost:9092 --from-beginning
+
+Read all data from Kafka topic 'test-topic' (from beginning of Topic) which is present on Kafka server localhost:9092.
+
+-------
+
+Starting a Multi-Node Kafka Cluster --
+
+1) Create 3 configuration files with different broker ids, listeners port settings and kafka-logs directories (since 3 servers will be running on the same machine)
+
+%KAFKA_HOME%\etc\kafka\server-0.properties
+%KAFKA_HOME%\etc\kafka\server-1.properties
+%KAFKA_HOME%\etc\kafka\server-2.properties
+
+2) Kafka and ZooKeeper logs are stored in path defined by log.dirs property in server.properties
+
+3) All scripts can be terminated with Cntrl-CLI
+
+4) Start Zookeeper server 
+
+zookeeper-server-start.bat %KAFKA_HOME%\etc\kafka\zookeeper.properties
+
+5) Start All 3 Kafka servers
+
+kafka-server-start.bat %KAFKA_HOME%\etc\kafka\server-0.properties
+kafka-server-start.bat %KAFKA_HOME%\etc\kafka\server-1.properties
+kafka-server-start.bat %KAFKA_HOME%\etc\kafka\server-2.properties
+
+6) Create a Topic using kafka-topics
+
+kafka-topics.bat --create --topic stock-ticks --partitions 3 --replication-factor 1 --bootstrap-server localhost:9092
+
+For Topics creation, either --bootstrap-server or --zookeeper must be specified.
+replication-factor is the number of copies for each partition.
+Total number of replicas = partitions (3)  * replication-factor (1) 
+
+Different topic partitions (3) are distributed to different Kafka servers (3) automatically (internally by Kafka).
+
+7) Consume data from above Kafka servers using Consumer Group with 3 consumers
+
+kafka-console-consumer.bat --topic stock-ticks --bootstrap-server localhost:9092 --from-beginning --group group1
+kafka-console-consumer.bat --topic stock-ticks --bootstrap-server localhost:9092 --from-beginning --group group1
+kafka-console-consumer.bat --topic stock-ticks --bootstrap-server localhost:9092 --from-beginning --group group1
+
+Note that even though all 3 consumers are reading from same Kafka server (localhost:9092), work distribution is done automatically (internally by Kafka)
+Each Kafka consumer reads data from different topic partition (3) which is present on different Kafka servers (3).
+
+8) Send data to Kafka servers using Kafka-console Producer
+
+kafka-console-producer.bat --topic stock-ticks --broker-list localhost:9092 < C:\git-repos\Kafka-Notes-And-Examples\Sample-Data-Files\sample1.csv
+
+All 3 consumers in consumer group 'group1' will read data sent by above producer.
+
+9) Kafka stores the messages in a log file to safeguard it from potential loss. This also ensures that consumers can consume messages later.
+Check logs using Kafka long dump utility -
+
+kafka-dump-log.bat --files C:\tmp\kafka-logs-1\stock-ticks-0\00000000000000000000.log
+
+
+
+What is Apache Zookeeper?
+
+Zookeeper is a kind of database where Kafka brokers store the shared information. It is used by multiple brokers as a shared system to co-ordinate among themselves for various things. Zookeeper should be up and running even for a single broker. In coming days, Zookeeper will be retired.
+
+We can connect to Zookeeper database with below command and check details like cluster, broker, broker-ids etc.
+
+C:\git-repos\Kafka-Notes-And-Examples\01-storage-demo\scripts>zookeeper-shell.bat localhost:2181
+Connecting to localhost:2181
+Welcome to ZooKeeper!
+JLine support is disabled
+
+WATCHER::
+
+WatchedEvent state:SyncConnected type:None path:null
+
+ls /
+[admin, brokers, cluster, config, consumers, controller, controller_epoch, isr_change_notification, latest_producer_id_block, log_dir_event_notification, zookeeper]
+
+ls /brokers
+[ids, seqid, topics]
+
+ls /brokers/ids
+[0, 1, 2]
+
+With all 3 brokers running in background above command shows ids of running brokers.
+
+get /controller
+{"version":1,"brokerid":0,"timestamp":"1610891115012"}
+
+"brokerid":0 is the controller 
+
+-------
+
+What is Topic?
+
+1) Kafka organises messages in Topics.
+2) Broker creates log files for each Topic to store these messages.
+3) Log files are partitioned (scalability), replicated (fault-tolerance) and segmented.
+4) Topic is analogous to a Table in Database terminology.
+5)To know details of Topic Leaders and Followers, execute below command -
+
+kafka-topics.bat --describe --zookeeper localhost:2181 --topic invoice
+
+6) If you want to locate a specific message, you must know at least 3 things - Topic Name, Partition Number and Segment Offset Number
+7) Kafka maintains an index of offsets in .index files. .index files are also segmented. This allows consumers to consume messages starting at a specific offset.
+8) Kafka also allows consumers to fetch messages based on timestamps. Kafka maintains an index of timestamps in .timeindex files. .timeindex files are also segmented.
+
+-------
+
+Kafka - Horizontal Vs. Vertical Scalability
+
+Horizontal Scaling - Add more producers to produce and send messages. Add more brokers in a Kafka cluster to handle incoming messages.
+
+Vertical Scaling - Individual Producer can be scaled using Multi-Threading technique. A multi-threaded Kafka producer can be used in scenarios where data is generated and sent at very high speeds. 
+
+Kafka Producer is Thread-safe, so multiple threads can share same Kafka Producer Object and send messages in parallel using same Producer instance.
+Sharing same Producer object across multiple threads is a recommended approach because it is faster and less resource-intensive.
+
+-------
+
+Transactions in Kafka Producer
+
+1) Transaction means ALL or NOTHING (Atomicity). Ability to write to several partitions of same or different topics atomically.
+2) Implementing transactions require some mandatory Topic-level configuration -
+
+For all topics which are included in a transaction should be configured with --
+	a) Replication Factor >= 3
+	b) min.insync.replicas >= 2
+
+-------
+
+Working with Types and Serialization -
+
+Kafka Producer Record uses KEY-VALUE semantics for the record. These KEY-VAUE pairs can contain complex Objects.
+
+1) How to create Java Types (POJOs) - Use Schema Definition Language(JSON/AVRO) and Auto-generate Java Class Definition (POJO)
+	a) Create POJO from JSON Schema using an open-source project jsonschema2pojo (https://github.com/joelittlejohn/jsonschema2pojo/wiki/Reference)
+	b) We use Maven Avro Plugin for generating POJOS from AVRO Schema.
+	
+2) How to serialize/de-serialize Java Types (POJos) - JSON Serialization / AVRO Serialization
+	a) JSON serialization is achieved using JSON serializer. JSON serialized messages are easy to use (text format) but they are large in size and hence more nw delays.
+	b) AVRO serialization is achieved using Confluent AVRO serializer. AVRO serialized messages are in binary format, more compact and hence less nw delays.
+
+Tips - 
+1) We use Json Schema to POJO maven plugin (jsonschema2pojo) defined in pom.xml. Just maven-compile this project and POJOs will be generated.
+2) Jackson annotations in JSON POJOS make this class Serializable/de-serializable.
+3) Avro generated classes do not support inheritance.
+4) We use Maven Avro Plugin defined in pom.xml for generating POJOS from AVRO Schema. Just maven-compile this project and POJOs will be generated.
+
+-------
+
+Kafka Consumers
+
+Consumer group takes care of scalability and fault-tolerance of consumers in a Consumer group.
+
+Challenges with Kafka Consumers --
+
+Basic features and facilities for creating real-time streaming applications are missing in Kafka Consumer API. 
+If requirements are like creating joins and aggregates from available Kafka Topics, we end up writing lot of complex code with Consumer API. Kafka streaming API has got all the necessary features and facilities for such data manipulations, hence it is preffered over Kafka Consumer API for real-time streaming of data.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

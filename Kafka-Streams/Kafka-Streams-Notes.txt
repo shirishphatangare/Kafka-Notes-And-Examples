@@ -1,0 +1,2 @@
+Kafka-Streams-Notes - TO start fresh remember to delete tmp directory in a project!
+-----------------------------------------
