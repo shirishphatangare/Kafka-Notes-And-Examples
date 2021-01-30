@@ -1,4 +1,4 @@
-Kafka-Basics-Notes - TO start fresh remember to delete tmp directory in a project!
+Kafka-Basics-Notes - To start fresh remember to delete tmp directory in a sample code project!
 -------------------------------------------------------------------
 1) Apache Kafka is a publish-subscribe messaging system which lets you send messages between processes, applications, and servers. 
 2) Apache Kafka is a horizontally scalable, fault-tolerant and distributed streaming platform.
@@ -17,8 +17,9 @@ Once data is in Kafka Cluster, it can be consumed/processed wither by Kafka Cons
 Kafka Distributions --
 
 1) Open Source - Apache Kafka - Free but No support
-2) Commercial Distribution - Confluent.io - Paid service, Support provided by Confluent, AVRO support in Confluent but not in Apache distribution
+2) Commercial Distribution - Confluent.io - Paid service, Support provided by Confluent, AVRO Serialization and Schema registry are available in Confluent but not in Apache distribution.
 3) Managed Service - Amazon, Confluent Cloud, aiven.io
+4) Apache Kafka Cluster can also be launched as a Docker Container. Docker can be integrated with Intellij with a Docker plugin. Once integrated Docker images/containers can be seen under Services tab of Intellij.
 
 -------
 
@@ -186,9 +187,9 @@ kafka-topics.bat --describe --zookeeper localhost:2181 --topic invoice
 
 Kafka - Horizontal Vs. Vertical Scalability
 
-Horizontal Scaling - Add more producers to produce and send messages. Add more brokers in a Kafka cluster to handle incoming messages.
+Horizontal Scaling (Multiple Instances) - Add more producers to produce and send messages. Add more brokers in a Kafka cluster to handle incoming messages.
 
-Vertical Scaling - Individual Producer can be scaled using Multi-Threading technique. A multi-threaded Kafka producer can be used in scenarios where data is generated and sent at very high speeds. 
+Vertical Scaling (Multi-Threading) - Individual Producer can be scaled using Multi-Threading technique. A multi-threaded Kafka producer can be used in scenarios where data is generated and sent at very high speeds. 
 
 Kafka Producer is Thread-safe, so multiple threads can share same Kafka Producer Object and send messages in parallel using same Producer instance.
 Sharing same Producer object across multiple threads is a recommended approach because it is faster and less resource-intensive.

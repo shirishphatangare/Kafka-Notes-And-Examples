@@ -1,2 +1,163 @@
-Kafka-Streams-Notes - TO start fresh remember to delete tmp directory in a project!
+Kafka-Streams-Notes - To start fresh remember to delete tmp directory in a sample code project!
+
 -----------------------------------------
+
+Kafka Streams API is a Client Library which is used to deploy client applications on single machine or containers. It's main features are scalability, automatic load balancing and fault-tolerance.
+
+------
+
+Kafka Streams - Alternatives 
+
+1) Streams DSL
+2) Processor API
+
+The Kafka Streams DSL (Domain Specific Language) is built on top of the Streams Processor API. It is the recommended for most users, especially beginners. Most data processing operations can be expressed in just a few lines of DSL code. Processor API is used for low-level operations.
+
+------
+
+Streams Topology - A step-by-step computational logic of a stream processing application. It can be represented using a Topology DAG.
+
+------
+
+Streams Architecture - 
+
+1) Kafka Streams is built on top of Kafka Client ApIs. 
+2) Kafka Streams provides parallel processing and fault tolerance.
+3) Horizontal Scaling (Multiple Instances of an application on different machines). F ault tolerance with Horizontal Scaling.
+4) Vertical Scaling (Multi-Threading on same machine). One Thread can execute one or more Tasks of Kafka Streams. Higher paralallism with Vertical Scaling.
+5) Tasks are nothing but copies of a Topology Object of Kafka Stream.
+6) Creating Threads of Kafka Streams application is very easy. You just need to add below configuration for a Kafka Stream.
+
+props.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 3); // This will start 3 threads of an application and distribute tasks among these threads. This will ensure faster execution of large real-time data processing.
+
+------
+
+The concept of states and state store --
+
+1) We can handle Kafka events in a Stream (like processing current invoice) individually. However, sometimes it is required for these events to remember some data from past events (like past invoice processing Events). States and State Stores help us remember past events.
+
+2) For real-time data processing, faster performance and fault tolerance are important for State Stores.
+
+3) Fault-Tolerant in-memory state stores and Recoverable persistent state stores.
+
+4) An individual processor in a Kafka Stream may or may not need a State Store. Hence there are Stateful(Aggregation, joining, windowing etc.) and Stateless (filter, mapValues, flatmap etc.) Processors.
+
+5) To ensure same task is processing all the invoices of same customer - 
+	1) Use customer ID as message key and keep default Partitioner. Default partitioning algorithm uses message key and will ensure all invoices of same customerId is processed by same Task.
+	2) Use Custom Partitioner. Repartitioning with a custom partitioner is an expensive operation and should be avoided as it impacts application performance. Should be used only when it is unavoidable.
+
+-----
+
+The notion of KTable
+
+1) Working with KStream is like working with an individual messages (one at a time).
+2) With KStreams, if you want to work with a group of messages with need to remember past information, we need to use a local State-Store.
+3) Instead of reading from a Topic using a Kstream and storing data in a local State-Store, we can read a Topic and store data in a KTable as a Key-Value pair. KTable is like a regular Table and CRUD operations can be performed on it.  
+4) KTable is nothing but an update Stream with a local State-Store.
+5) A record with an existing key and a null value is a DELETE operation for the KTable. 
+6) You can use KTable in the same way as you are using KStream.
+7) Records are updated or inserted in the KTable.
+8) KTable forwards records to the next processor in the chain slowly. This slowness is due to KTable caching which is an optimization technique.
+We can disable KTable caching.
+9) KTable is local, that means each Task will have it's own KTable and hence local State-Store.
+10) To handle requirements for common global dataset across Tasks, GlobalKTable is used.
+11) KTable is a great choice for parallel processing of data. One TASK (ONE KTable) -> One PARTITION
+12) GlobalKTable. One TASK -> ALL PARTITIONS and hence each TASK((ONE GlobalKTable)-> ALL PARTITIONS.
+13) GlobalKTable is not ideal for parallel processing because it causes duplicate processing.
+14) GlobalKTable is good choice for lookup tables and braodcasting to all running TASKS.
+15) GlobalKTable requires local storage at each TASK (instance) and increase nw traffic and Broker workload as each instance reads entire data.
+16) GlobalKTable is an ideal choice for small set of information.
+
+-----
+
+Real-Time Aggregation - How to aggregate a real-time stream.
+
+Computing aggregates is a two-step process -- 
+
+1) Group By a Key 
+	a) Key is the most critical element for aggregation
+	b) Data must be partitioned on the key
+	
+2) Apply Aggregation Formula
+	Only three methods for aggregation - count(), reduce() and aggregate()
+
+Rule of Thumb --
+ *  KTable - Update Stream scenario
+ *  KStream - Append Stream scenario
+
+
+-----
+
+Timestamps and Windows
+
+Aggregations can be on two types - Infinite Aggregation and Windowed Aggregation
+
+Windowed Aggregation - Aggregation for small chunks of data based on time-window. (hourly, daily, weekly etc.)
+
+Notion of Timestamps --
+
+Timestamp Extractors (FailOnInvalidTimestamp, LogAndSkipOnInvalidTimestamp, UsePreviousTimeOnInvalidTimestamp)
+
+1) Event Time
+	a) Use custom Timestamp extractor to read time from the message value
+	b) Use above Timestamp extractors to read producer time
+2) Ingestion Time - Configure the topic for LogAppendTime and use above Timestamp extractors
+3) Processing Time - Use WallClockTimestampExtractor
+
+-----
+
+
+Joining Streams and Tables --
+
+Kafka Streams API supports following join operations -- 
+
+Join Operation	Result	Join Types									Feature	
+KS - KS			 KS		Inner, Left, Outer, Swapping for Right		Windowed, Key-based
+KT - KT			 KT	 	Inner, Left, Outer, Swapping for Right		Non-Window, Key-based
+KS - KT			 KS		Inner, Left, Outer							Non-Window, Key-based
+KS - GlobalKT	 KS		Inner, Left									Non-Window, Key-based or Non-Key based
+
+1) Joins are based on a message key.  Non-Key based joins are allowed only for KS-GlobalKT joins. 
+2) Both the topics in a join must be co-partitioned. Both topics must have same no. of partitions and data must be co-partitioned (i.e. same partitioning stretegy so that records with same key are stored in the same partition.)
+3) co-partitioning is a mandatory requirement. However, it is not mandatory for KS-GlobalKT joins. 
+
+A) KS - KS	Joins
+
+1) KStream is an infinite, unbounded stream of records.
+2) KS - KS	Joins are always Windowed joins and Non-Windowed joins are not permitted because it will exhaust all the resources.
+
+B) KS - KT	Joins
+
+1) Typical use cases are to implement Lookups and Stream enrichment.
+2) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

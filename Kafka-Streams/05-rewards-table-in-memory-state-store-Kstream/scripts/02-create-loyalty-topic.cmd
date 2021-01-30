@@ -1,0 +1,1 @@
+%KAFKA_HOME%\bin\windows\kafka-topics.bat --create --zookeeper localhost:2181 --topic loyalty --partitions 2 --replication-factor 3 --config min.insync.replicas=2
